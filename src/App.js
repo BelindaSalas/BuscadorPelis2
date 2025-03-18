@@ -1,22 +1,28 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useState } from "react";
+import SearchBar from "./componentes/SearchBar";
+import "./App.css"; 
+
 
 function App() {
+  const [searchResults, setSearchResults] = useState([]);
+
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+        <h1>Hola</h1>
+        
+        <p>¡Busca tu pelicula favorita !</p>
+        
+        {/* Barra de búsqueda */}
+        <SearchBar onResults={setSearchResults} />
+
+        {/* Resultados de la búsqueda */}
+        <h1>Resultados:</h1>
+        <ul>
+          {searchResults.map((movie) => (
+            <li key={movie.id}>{movie.title}</li>
+          ))}
+        </ul>
       </header>
     </div>
   );
