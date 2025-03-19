@@ -14,7 +14,6 @@ const MovieSearch = () => {
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    // Obtener la lista de géneros
     axios.get(`${BASE_URL}/genre/movie/list`, {
       params: {
         api_key: API_KEY,
@@ -31,12 +30,11 @@ const MovieSearch = () => {
 
   useEffect(() => {
     if (searchTerm.trim() === '') {
-      setMovies([]); // Limpiar resultados si no hay término de búsqueda
+      setMovies([]);
       setTotalPages(1);
       return;
     }
 
-    // Determinar si la búsqueda es por género, artista o título
     const isGenreSearch = genres.some(genre => genre.name.toLowerCase() === searchTerm.toLowerCase());
     const isArtistSearch = searchTerm.toLowerCase().startsWith('artista:');
 
@@ -45,7 +43,7 @@ const MovieSearch = () => {
       api_key: API_KEY,
       language: 'es-ES',
       query: searchTerm,
-      page: currentPage // Agregar el número de página a la solicitud
+      page: currentPage 
     };
 
     if (isGenreSearch) {
@@ -53,7 +51,7 @@ const MovieSearch = () => {
       if (genreId) {
         url = `${BASE_URL}/discover/movie`;
         params.with_genres = genreId;
-        delete params.query; // Eliminar el parámetro de búsqueda por título
+        delete params.query; 
       }
     }
 
@@ -63,23 +61,21 @@ const MovieSearch = () => {
       params.query = artistName;
     }
 
-    // Realizar la búsqueda
     axios.get(url, { params })
       .then(response => {
         if (isArtistSearch) {
-          // Si se busca por artista, obtener todas las películas en las que ha participado
           const allMoviesByArtists = response.data.results.flatMap(person => person.known_for || []);
           setMovies(allMoviesByArtists);
-          setTotalPages(1); // No hay paginación para búsquedas de artistas
+          setTotalPages(1); 
         } else {
           setMovies(response.data.results);
-          setTotalPages(response.data.total_pages); // Establecer el número total de páginas
+          setTotalPages(response.data.total_pages); 
         }
       })
       .catch(error => {
         console.error('Error fetching movies:', error);
       });
-  }, [searchTerm, genres, currentPage]); // Dependencia agregada: currentPage
+  }, [searchTerm, genres, currentPage]); 
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
@@ -98,11 +94,11 @@ const MovieSearch = () => {
       <input
         type="text"
         className="search-bar"
-        placeholder="Buscar por título, género o artista:artista..."
+        placeholder="Buscar por título, género o artista"
         value={searchTerm}
         onChange={(e) => {
           setSearchTerm(e.target.value);
-          setCurrentPage(1); // Reiniciar a la primera página al cambiar el término de búsqueda
+          setCurrentPage(1); 
         }}
       />
       <div className="results-container">
@@ -120,7 +116,6 @@ const MovieSearch = () => {
           </div>
         ))}
       </div>
-      {/* Componente de paginación */}
       <Pagina
         currentPage={currentPage}
         totalPages={totalPages}
@@ -130,5 +125,4 @@ const MovieSearch = () => {
     </div>
   );
 };
-
 export default MovieSearch;
