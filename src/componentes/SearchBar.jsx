@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import axios from "axios";
-
+import "./SearchBar.css"; // Archivo de estilos
 
 const API_URL = "https://api.themoviedb.org/3/search/movie";
-const API_KEY = "TU_API_KEY"; /* ALAN en esta parte va air la api que te genere la plataforma*/ 
+const API_KEY = "57842c3cfdbdb9704c062d73aae1ae46"; // Reemplaza con tu API key
 
 const SearchBar = ({ onResults }) => {
   const [query, setQuery] = useState("");
@@ -30,20 +30,32 @@ const SearchBar = ({ onResults }) => {
   };
 
   return (
-    <div>
+    <div className="search-container">
       <input
         type="text"
+        className="search-bar"
         placeholder="Buscar película..."
         value={query}
         onChange={handleInputChange}
       />
-      <ul>
+      <div className="results-container">
         {movies.map((movie) => (
-          <li key={movie.id}>{movie.title}</li>
+          <div key={movie.id} className="movie-card">
+            
+            <img
+                src={movie.poster_path
+                    ? `https://image.tmdb.org/t/p/w200${movie.poster_path}`
+                    : "https://via.placeholder.com/200x300?text=No+Image"}
+                alt={movie.title || "Imagen no disponible"}
+                className="movie-poster"
+            />
+
+            <p className="movie-title">{movie.title}</p>
+        </div>
         ))}
-      </ul>
     </div>
-  );
+    </div>
+);
 };
 
 export default SearchBar;
