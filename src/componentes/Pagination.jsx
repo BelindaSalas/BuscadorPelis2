@@ -1,22 +1,32 @@
 import React from 'react';
 import "./Pagination.css"
 
-const Pagina= ({ currentPage, totalPages, onPreviousPage, onNextPage }) => {
+const Pagination = ({ currentPage, totalPages, onPreviousPage, onNextPage }) => {
     if (totalPages <= 1) {
         return null;
-    }
-
-    return (
-        <div className="pagination">
-            <button onClick={onPreviousPage} disabled={currentPage === 1}>
-            Anterior
-            </button>
-            <span className='pagination-text'>Página {currentPage} de {totalPages}</span>
-            <button onClick={onNextPage} disabled={currentPage === totalPages}>
-            Siguiente
-            </button>
-        </div>
+        }
+    
+        return (
+        <nav>
+            <ul className="pagination justify-content-center">
+            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                <button className="page-link" onClick={onPreviousPage}>
+                Anterior
+                </button>
+            </li>
+            <li className="page-item active">
+                <span>
+                Página {currentPage} de {totalPages}
+                </span>
+            </li>
+            <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                <button className="page-link" onClick={onNextPage}>
+                Siguiente
+                </button>
+            </li>
+            </ul>
+        </nav>
     );
 };
 
-export default Pagina;
+export default Pagination;
