@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import Pagina from './Pagination.jsx'; 
+import Pagination from './Pagination';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const API_KEY = '57842c3cfdbdb9704c062d73aae1ae46';
 const BASE_URL = 'https://api.themoviedb.org/3';
 
-const MovieSearch = () => {
+const SearchBar = ({ onSearchState }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [movies, setMovies] = useState([]);
   const [genres, setGenres] = useState([]);
@@ -16,17 +16,10 @@ const MovieSearch = () => {
 
   useEffect(() => {
     axios.get(`${BASE_URL}/genre/movie/list`, {
-      params: {
-        api_key: API_KEY,
-        language: 'es-ES'
-      }
+      params: { api_key: API_KEY, language: 'es-ES' }
     })
-    .then(response => {
-      setGenres(response.data.genres);
-    })
-    .catch(error => {
-      console.error('Error fetching genres:', error);
-    });
+    .then(response => setGenres(response.data.genres))
+    .catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -34,19 +27,20 @@ const MovieSearch = () => {
       setMovies([]);
       setTotalPages(1);
       setError('');
+      onSearchState(false, false, false);
       return;
     }
 
     if (!isValidSearchTerm(searchTerm)) {
-      setError('No se permiten caracteres especiales ni espacios solos.');
+      setError('Solo se permiten letras, números y espacios');
       setMovies([]);
       setTotalPages(1);
+      onSearchState(false, true, true);
       return;
     }
 
     setError('');
-
-    const isGenreSearch = genres.some(genre => genre.name.toLowerCase() === searchTerm.toLowerCase());
+    const isGenreSearch = genres.some(g => g.name.toLowerCase() === searchTerm.toLowerCase());
     const isArtistSearch = searchTerm.toLowerCase().startsWith('artista ');
 
     let url = `${BASE_URL}/search/movie`;
@@ -58,7 +52,7 @@ const MovieSearch = () => {
     };
 
     if (isGenreSearch) {
-      const genreId = genres.find(genre => genre.name.toLowerCase() === searchTerm.toLowerCase())?.id;
+      const genreId = genres.find(g => g.name.toLowerCase() === searchTerm.toLowerCase())?.id;
       if (genreId) {
         url = `${BASE_URL}/discover/movie`;
         params.with_genres = genreId;
@@ -67,57 +61,27 @@ const MovieSearch = () => {
     }
 
     if (isArtistSearch) {
-      const artistName = searchTerm.replace('artista ', '').trim();
       url = `${BASE_URL}/search/person`;
-      params.query = artistName;
+      params.query = searchTerm.replace('artista ', '').trim();
     }
 
     axios.get(url, { params })
       .then(response => {
-        if (isArtistSearch) {
-          const allMoviesByArtists = response.data.results.flatMap(person => person.known_for || []);
-          setMovies(allMoviesByArtists);
-          setTotalPages(1);
-        } else {
-          setMovies(response.data.results);
-          setTotalPages(response.data.total_pages);
-        }
+        const results = isArtistSearch 
+          ? response.data.results.flatMap(p => p.known_for || []) 
+          : response.data.results;
+        
+        setMovies(results);
+        setTotalPages(isArtistSearch ? 1 : response.data.total_pages);
+        onSearchState(results.length > 0, false, true);
       })
       .catch(error => {
-        console.error('Error fetching movies:', error);
+        console.error('Error:', error);
+        onSearchState(false, true, true);
       });
-  }, [searchTerm, genres, currentPage]);
+  }, [searchTerm, genres, currentPage, onSearchState]);
 
-  const fetchMovieCredits = async (movieId) => {
-    try {
-      const response = await axios.get(`${BASE_URL}/movie/${movieId}/credits`, {
-        params: {
-          api_key: API_KEY
-        }
-      });
-      return response.data.cast.slice(0, 5).map(actor => actor.original_name);
-    } catch (error) {
-      console.error('Error fetching credits:', error);
-      return [];
-    }
-  };
-
-  const isValidSearchTerm = (term) => {
-    const regex = /^[a-zA-Z0-9\sáéíóúÁÉÍÓÚñÑ]+$/;
-    return regex.test(term.trim());
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  const handlePreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
+  const isValidSearchTerm = (term) => /^[a-zA-Z0-9\sáéíóúÁÉÍÓÚñÑ]+$/.test(term.trim());
 
   const handleInputChange = (e) => {
     const value = e.target.value;
@@ -125,79 +89,71 @@ const MovieSearch = () => {
       setSearchTerm(value);
       setCurrentPage(1);
       setError('');
-    } else {
-      setError('No se permiten caracteres especiales ni espacios solos.');
     }
   };
 
   return (
     <div className="container mt-4">
       <div className="row justify-content-center">
-        <div className="col-md-6">
+        <div className="col-md-8">
           <input
             type="text"
-            className="form-control"
-            placeholder="Buscar por título, género o artista:artista..."
+            className="form-control form-control-lg"
+            placeholder="Buscar por título, género o 'artista nombre'..."
             value={searchTerm}
             onChange={handleInputChange}
           />
-          {error && <p className="text-danger mt-2">{error}</p>}
+          {error && <div className="alert alert-danger mt-2">{error}</div>}
         </div>
       </div>
-      <div className="row mt-4">
-        {movies.map((movie) => (
-          <div key={movie.id} className="col-md-4 mb-4">
-            <div className="card h-100">
+
+      {movies.length === 0 && searchTerm.trim() !== '' && !error && (
+        <div className="row justify-content-center mt-5">
+          <div className="col-md-6">
+            <div className="alert alert-info text-center">
+              No se encontraron resultados para "{searchTerm}"
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="row row-cols-1 row-cols-md-3 g-4 mt-3">
+        {movies.map(movie => (
+          <div key={movie.id} className="col">
+            <div className="card h-100 shadow-sm">
               <img
-                src={`https://image.tmdb.org/t/p/w300${movie.poster_path}`}
-                alt={movie.title}
+                src={movie.poster_path 
+                  ? `https://image.tmdb.org/t/p/w300${movie.poster_path}`
+                  : '/placeholder-movie.png'}
                 className="card-img-top"
+                alt={movie.title}
+                style={{ height: '450px', objectFit: 'cover' }}
               />
               <div className="card-body">
                 <h5 className="card-title">{movie.title}</h5>
-                <p className="card-text">
-                  {movie.overview ? movie.overview.slice(0, 100) + '...' : 'Descripción no disponible.'}
-                </p>
-                <p className="card-text">
-                  <small className="text-muted">
-                    Reparto: <MovieCast movieId={movie.id} fetchMovieCredits={fetchMovieCredits} />
-                  </small>
+                <p className="card-text text-muted">
+                  {movie.overview?.slice(0, 120) || 'Descripción no disponible'}...
                 </p>
               </div>
             </div>
           </div>
         ))}
       </div>
-      <div className="row justify-content-center mt-4">
-        <div className="col-md-6 text-center">
-          <Pagina
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPreviousPage={handlePreviousPage}
-            onNextPage={handleNextPage}
-          />
+
+      {movies.length > 0 && totalPages > 1 && (
+        <div className="row justify-content-center mt-4">
+          <div className="col-md-6">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPreviousPage={() => setCurrentPage(p => Math.max(1, p - 1))}
+              onNextPage={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
 
-const MovieCast = ({ movieId, fetchMovieCredits }) => {
-  const [cast, setCast] = useState([]);
-
-  useEffect(() => {
-    const getCast = async () => {
-      const credits = await fetchMovieCredits(movieId);
-      setCast(credits);
-    };
-    getCast();
-  }, [movieId, fetchMovieCredits]);
-
-  return (
-    <span>
-      {cast.length > 0 ? cast.join(', ') : 'Cargando reparto...'}
-    </span>
-  );
-};
-
-export default MovieSearch;
+export default SearchBar;
